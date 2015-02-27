@@ -78,12 +78,7 @@ public class MainActivity extends ActionBarActivity {
             return;
         }
         else {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
                     scanForaBluetoothDevice();
-                }
-            });
         }
 
     }
