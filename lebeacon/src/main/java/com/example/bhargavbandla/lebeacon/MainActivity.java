@@ -195,7 +195,7 @@ public class MainActivity extends ActionBarActivity {
             {
                 proximity="Far";
             }
-            distanceE.setText("Proximty Range"+proximity);
+            distanceE.setText("Proximty Range :"+proximity);
             Log.d("Parse iBeacon  Data",String.format("Found Proxity UUID %s, major-%d, minor-%d Txpower-%f",uuid,major,minor,dis));
 
 
