@@ -14,6 +14,9 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.os.Handler;
+import java.util.logging.LogRecord;
+
 
 public class MainActivity extends ActionBarActivity {
     TextView deviceName;
@@ -22,8 +25,10 @@ public class MainActivity extends ActionBarActivity {
     TextView major;
     TextView minor;
     TextView distance;
+    TextView distanceE;
     int rssi;
     BluetoothAdapter bluetoothAdapter;
+    Handler handler;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,6 +39,8 @@ public class MainActivity extends ActionBarActivity {
         distance=(TextView)findViewById(R.id.distance);
         major=(TextView)findViewById(R.id.major);
         minor=(TextView)findViewById(R.id.minor);
+        distanceE=(TextView)findViewById(R.id.distanceE);
+        handler=new Handler();
         if(!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE))
         {
             Toast.makeText(getBaseContext(),"You Device Doesn't Support BLE",Toast.LENGTH_LONG).show();
@@ -55,14 +62,15 @@ public class MainActivity extends ActionBarActivity {
         {
             Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
-            startActivityForResult(bluetoothRequestIntent,1);
+            startActivityForResult(bluetoothRequestIntent,011);
+
         }
         scanForaBluetoothDevice();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode==1&&resultCode== Activity.RESULT_CANCELED)
+        if(requestCode==011&&resultCode== Activity.RESULT_CANCELED)
         {
             finish();
             return;
@@ -71,6 +79,12 @@ public class MainActivity extends ActionBarActivity {
     }
     public void scanForaBluetoothDevice()
     {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                bluetoothAdapter.stopLeScan(scanCallback);
+            }
+        },5000);
         bluetoothAdapter.startLeScan(scanCallback);
     }
     BluetoothAdapter.LeScanCallback scanCallback=new BluetoothAdapter.LeScanCallback() {
@@ -90,6 +104,36 @@ public class MainActivity extends ActionBarActivity {
             });
         }
     };
+    /*
+                d6 be 89 8e 40 24 05 a2 17 6e 3d 71 02 01 1a 1a ff 4c 00 02 15 e2 c5 6d b5 df fb 48 d2 b0 60 d0 f5 a7 10 96 e0 00 00 00 00 c5 52 ab 8d 38 a5
+
+                d6 be 89 8e # Access address for advertising data (this is always the same fixed value)
+                40 # Advertising Channel PDU Header byte 0.  Contains: (type = 0), (tx add = 1), (rx add = 0)
+                24 # Advertising Channel PDU Header byte 1.  Contains:  (length = total bytes of the advertising payload + 6 bytes for the BLE mac address.)
+                05 a2 17 6e 3d 71 # Bluetooth Mac address (note this is a spoofed address)
+                02 01 1a 1a ff 4c 00 02 15 e2 c5 6d b5 df fb 48 d2 b0 60 d0 f5 a7 10 96 e0 00 00 00 00 c5 # Bluetooth advertisement
+                52 ab 8d 38 a5 # checksum
+
+
+                02 # Number of bytes that follow in first AD structure
+                01 # Flags AD type
+                1A # Flags value 0x1A = 000011010
+                   bit 0 (OFF) LE Limited Discoverable Mode
+                   bit 1 (ON) LE General Discoverable Mode
+                   bit 2 (OFF) BR/EDR Not Supported
+                   bit 3 (ON) Simultaneous LE and BR/EDR to Same Device Capable (controller)
+                   bit 4 (ON) Simultaneous LE and BR/EDR to Same Device Capable (Host)
+                1A # Number of bytes that follow in second (and last) AD structure
+                FF # Manufacturer specific data AD type
+                4C 00 # Company identifier code (0x004C == Apple)
+                02 # Byte 0 of iBeacon advertisement indicator
+                15 # Byte 1 of iBeacon advertisement indicator
+                e2 c5 6d b5 df fb 48 d2 b0 60 d0 f5 a7 10 96 e0 # iBeacon proximity uuid
+                00 00 # major
+                00 00 # minor
+                c5 # Tx Power
+            */
+
     private void ParseData(byte[] scanRecord,int rssi)
     {
         int startByte = 2;
@@ -107,6 +151,7 @@ public class MainActivity extends ActionBarActivity {
         if (patternFound) {
             //Convert to hex String
             byte[] uuidBytes = new byte[16];
+
             System.arraycopy(scanRecord, startByte+4, uuidBytes, 0, 16);
             String hexString = bytesToHex(uuidBytes);
 
@@ -135,7 +180,22 @@ public class MainActivity extends ActionBarActivity {
              */
             //Distance
            double dis= Math.pow(10d, ((double) strength - rssi) / (10 * 2));
-            distance.setText(String.format("Distance :%.2f",dis));
+            distance.setText(String.format("Distance :%.2f m",dis));
+            String proximity="";
+            if(dis<=1.0)
+            {
+                proximity="Immediate";
+
+            }
+            else if(dis<=10.0)
+            {
+                proximity="Near";
+            }
+            else if(dis>10.0)
+            {
+                proximity="Far";
+            }
+            distanceE.setText("Proximty Range"+proximity);
             Log.d("Parse iBeacon  Data",String.format("Found Proxity UUID %s, major-%d, minor-%d Txpower-%f",uuid,major,minor,dis));
 
 
