@@ -65,6 +65,7 @@ public class MainActivity extends ActionBarActivity {
             startActivityForResult(bluetoothRequestIntent,1);
 
         }
+        else
         scanForaBluetoothDevice();
     }
 
@@ -76,7 +77,14 @@ public class MainActivity extends ActionBarActivity {
             finish();
             return;
         }
-        scanForaBluetoothDevice();
+        else {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    scanForaBluetoothDevice();
+                }
+            });
+        }
 
     }
     public void scanForaBluetoothDevice()
