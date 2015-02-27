@@ -62,7 +62,7 @@ public class MainActivity extends ActionBarActivity {
         {
             Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
-            startActivityForResult(bluetoothRequestIntent,011);
+            startActivityForResult(bluetoothRequestIntent,1);
 
         }
         scanForaBluetoothDevice();
@@ -70,12 +70,14 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode==011&&resultCode== Activity.RESULT_CANCELED)
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==1&&resultCode== Activity.RESULT_CANCELED)
         {
             finish();
             return;
         }
-        super.onActivityResult(requestCode, resultCode, data);
+        scanForaBluetoothDevice();
+
     }
     public void scanForaBluetoothDevice()
     {
@@ -84,7 +86,8 @@ public class MainActivity extends ActionBarActivity {
             public void run() {
                 bluetoothAdapter.stopLeScan(scanCallback);
             }
-        },5000);
+        },10000);
+
         bluetoothAdapter.startLeScan(scanCallback);
     }
     BluetoothAdapter.LeScanCallback scanCallback=new BluetoothAdapter.LeScanCallback() {
@@ -155,7 +158,7 @@ public class MainActivity extends ActionBarActivity {
             System.arraycopy(scanRecord, startByte+4, uuidBytes, 0, 16);
             String hexString = bytesToHex(uuidBytes);
 
-            //Here is your UUID
+            //UUID
             String uuid =  hexString.substring(0,8) + "-" +
                     hexString.substring(8,12) + "-" +
                     hexString.substring(12,16) + "-" +
