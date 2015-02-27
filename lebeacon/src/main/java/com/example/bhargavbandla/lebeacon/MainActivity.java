@@ -152,10 +152,11 @@ public class MainActivity extends ActionBarActivity {
         }
 
         if (patternFound) {
-            //Convert to hex String
+            //Convert UUID to hex String
             byte[] uuidBytes = new byte[16];
 
             System.arraycopy(scanRecord, startByte+4, uuidBytes, 0, 16);
+
             String hexString = bytesToHex(uuidBytes);
 
             //UUID
@@ -164,13 +165,14 @@ public class MainActivity extends ActionBarActivity {
                     hexString.substring(12,16) + "-" +
                     hexString.substring(16,20) + "-" +
                     hexString.substring(20,32);
+            deviceuuid.setText("UUID :"+uuid);
 
             // Major value
-            deviceuuid.setText("UUID :"+uuid);
             int major = (scanRecord[startByte+20] & 0xff) * 0x100 + (scanRecord[startByte+21] & 0xff);
 
             //Minor value
             int minor = (scanRecord[startByte+22] & 0xff) * 0x100 + (scanRecord[startByte+23] & 0xff);
+
             //Tx Power
             int strength = ((scanRecord[startByte+24]))  ;
 
@@ -181,6 +183,7 @@ public class MainActivity extends ActionBarActivity {
             RSSI = TxPower - 10 * n * lg(distance)
             distance= 10 ^ ((TxPower - RSSI) / (10 * n))
              */
+
             //Distance
            double dis= Math.pow(10d, ((double) strength - rssi) / (10 * 2));
             distance.setText(String.format("Distance :%.2f m",dis));
