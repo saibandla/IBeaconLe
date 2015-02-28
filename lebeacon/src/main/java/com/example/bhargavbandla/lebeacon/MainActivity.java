@@ -1,11 +1,20 @@
 package com.example.bhargavbandla.lebeacon;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.provider.Settings;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +24,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import android.os.Handler;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.logging.LogRecord;
 
 
@@ -58,15 +71,13 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(!bluetoothAdapter.isEnabled())
-        {
-            Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-
-            startActivityForResult(bluetoothRequestIntent,1);
-
-        }
-        else
-        scanForaBluetoothDevice();
+            if(!bluetoothAdapter.isEnabled())
+            {
+                Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(bluetoothRequestIntent,1);
+            }
+            else
+                scanForaBluetoothDevice();
     }
 
     @Override
@@ -78,9 +89,43 @@ public class MainActivity extends ActionBarActivity {
             return;
         }
         else {
-                    scanForaBluetoothDevice();
+            scanForaBluetoothDevice();
         }
+    }
 
+    private  void noNetworkAlertDialog()
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("No Network Available")
+                .setMessage("Do you want to turn on Wifi Setting")
+                .setCancelable(false)
+                .setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Intent intent=new Intent(Settings.ACTION_WIFI_SETTINGS);
+                        startActivity(intent);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Toast.makeText(getBaseContext(),"You may not get Promotional messages from the Provider",Toast.LENGTH_LONG).show();
+                    }
+                });
+        AlertDialog dialog=builder.create();
+        dialog.show();
+    }
+    private boolean isNextworkAvailable()
+    {
+        ConnectivityManager connectivityManager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+        NetworkInfo[] networkInfos=connectivityManager.getAllNetworkInfo();
+        for(int i=0;i<networkInfos.length;i++)
+        {
+            NetworkInfo networkInfo=networkInfos[i];
+            if(networkInfo.isConnected())
+            {
+                return true;
+            }
+        }
+        return false;
     }
     public void scanForaBluetoothDevice()
     {
@@ -90,18 +135,15 @@ public class MainActivity extends ActionBarActivity {
                 bluetoothAdapter.stopLeScan(scanCallback);
             }
         },10000);
-
         bluetoothAdapter.startLeScan(scanCallback);
     }
     BluetoothAdapter.LeScanCallback scanCallback=new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
-
             runOnUiThread(new Runnable() {
 
                 @Override
                 public void run() {
-
                     deviceName.setText("Device Name: " + device.getName());
                     deviceAddress.setText("Device Address "+device.getAddress());
                     ParseData(scanRecord,rssi);
@@ -194,7 +236,6 @@ public class MainActivity extends ActionBarActivity {
             if(dis<=1.0)
             {
                 proximity="Immediate";
-
             }
             else if(dis<=10.0)
             {
@@ -205,15 +246,56 @@ public class MainActivity extends ActionBarActivity {
                 proximity="Far";
             }
             distanceE.setText("Proximty Range :"+proximity);
+            if(proximity!="") {
+                if(isNextworkAvailable()) {
+                    String url = "http://www.nivansys.com/iBeacon.php?proximity=" + proximity;
+                    RestAPICalls restAPICalls = new RestAPICalls();
+                    restAPICalls.execute(url);
+                }
+                else
+                {
+                    noNetworkAlertDialog();
+                }
+            }
             Log.d("Parse iBeacon  Data",String.format("Found Proxity UUID %s, major-%d, minor-%d Txpower-%f",uuid,major,minor,dis));
-
-
         }
         else
         {
             Log.d("Parse iBeacon  Data","Unable to Parse iBeacon");
         }
+    }
+    private class RestAPICalls extends AsyncTask<String,Void,JSONObject>
+    {
+        @Override
+        protected JSONObject doInBackground(String... params) {
+            JSONParser jsonParser=new JSONParser();
+            return jsonParser.excecuteGetTypeResquestFromUrl(params[0]);
+        }
+        @Override
+        protected void onPostExecute(JSONObject jsonObject) {
+            super.onPostExecute(jsonObject);
+            Log.d("Tag",jsonObject.toString());
+            try {
+                if(!jsonObject.getBoolean("error"));
+                {
+                    notifyUser(jsonObject.getString("message"));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
+    private void notifyUser(String message)
+    {
+        NotificationManager notificationManager=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(getApplicationContext())
+                        .setSmallIcon(android.R.drawable.stat_notify_chat)
+                        .setContentTitle("Ibeacon")
+                        .setContentText(message);
+        Log.d("Notify","Notified");
+        notificationManager.notify(121,mBuilder.build());
     }
     static final char[] hexArray = "0123456789ABCDEF".toCharArray();
     private static String bytesToHex(byte[] bytes) {
@@ -231,12 +313,8 @@ public class MainActivity extends ActionBarActivity {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -250,6 +328,7 @@ public class MainActivity extends ActionBarActivity {
                 Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(bluetoothRequestIntent,1);
             }
+            else
             scanForaBluetoothDevice();
         }
 
