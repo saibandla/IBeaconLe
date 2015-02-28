@@ -42,28 +42,27 @@ public class MainActivity extends ActionBarActivity {
     int rssi;
     BluetoothAdapter bluetoothAdapter;
     Handler handler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        deviceName=(TextView)findViewById(R.id.deviceName);
-        deviceuuid=(TextView)findViewById(R.id.uuid);
-        deviceAddress=(TextView)findViewById(R.id.deviceAddress);
-        distance=(TextView)findViewById(R.id.distance);
-        major=(TextView)findViewById(R.id.major);
-        minor=(TextView)findViewById(R.id.minor);
-        distanceE=(TextView)findViewById(R.id.distanceE);
-        handler=new Handler();
-        if(!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE))
-        {
-            Toast.makeText(getBaseContext(),"You Device Doesn't Support BLE",Toast.LENGTH_LONG).show();
+        deviceName = (TextView) findViewById(R.id.deviceName);
+        deviceuuid = (TextView) findViewById(R.id.uuid);
+        deviceAddress = (TextView) findViewById(R.id.deviceAddress);
+        distance = (TextView) findViewById(R.id.distance);
+        major = (TextView) findViewById(R.id.major);
+        minor = (TextView) findViewById(R.id.minor);
+        distanceE = (TextView) findViewById(R.id.distanceE);
+        handler = new Handler();
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(getBaseContext(), "You Device Doesn't Support BLE", Toast.LENGTH_LONG).show();
             finish();
         }
-        BluetoothManager bluetoothManager=(BluetoothManager)getSystemService(BLUETOOTH_SERVICE);
-        bluetoothAdapter=bluetoothManager.getAdapter();
-        if((bluetoothManager.getAdapter()==null))
-        {
-            Toast.makeText(getBaseContext(),"You Device Doesn't Support BlueTooth",Toast.LENGTH_LONG).show();
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+        if ((bluetoothManager.getAdapter() == null)) {
+            Toast.makeText(getBaseContext(), "You Device Doesn't Support BlueTooth", Toast.LENGTH_LONG).show();
             finish();
         }
     }
@@ -71,73 +70,67 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
-            if(!bluetoothAdapter.isEnabled())
-            {
-                Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(bluetoothRequestIntent,1);
-            }
-            else
-                scanForaBluetoothDevice();
+        if (!bluetoothAdapter.isEnabled()) {
+            Intent bluetoothRequestIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(bluetoothRequestIntent, 1);
+        } else
+            scanForaBluetoothDevice();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==1&&resultCode== Activity.RESULT_CANCELED)
-        {
+        if (requestCode == 1 && resultCode == Activity.RESULT_CANCELED) {
             finish();
             return;
-        }
-        else {
+        } else {
             scanForaBluetoothDevice();
         }
     }
 
-    private  void noNetworkAlertDialog()
-    {
+    private void noNetworkAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("No Network Available")
                 .setMessage("Do you want to turn on Wifi Setting")
                 .setCancelable(false)
                 .setPositiveButton("Settings", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        Intent intent=new Intent(Settings.ACTION_WIFI_SETTINGS);
+                        Intent intent = new Intent(Settings.ACTION_WIFI_SETTINGS);
                         startActivity(intent);
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        Toast.makeText(getBaseContext(),"You may not get Promotional messages from the Provider",Toast.LENGTH_LONG).show();
+                        Toast.makeText(getBaseContext(), "You may not get Promotional messages from the Provider", Toast.LENGTH_LONG).show();
                     }
                 });
-        AlertDialog dialog=builder.create();
+        AlertDialog dialog = builder.create();
         dialog.show();
     }
-    private boolean isNextworkAvailable()
-    {
-        ConnectivityManager connectivityManager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
-        NetworkInfo[] networkInfos=connectivityManager.getAllNetworkInfo();
-        for(int i=0;i<networkInfos.length;i++)
-        {
-            NetworkInfo networkInfo=networkInfos[i];
-            if(networkInfo.isConnected())
-            {
+
+    private boolean isNextworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        NetworkInfo[] networkInfos = connectivityManager.getAllNetworkInfo();
+        for (int i = 0; i < networkInfos.length; i++) {
+            NetworkInfo networkInfo = networkInfos[i];
+            if (networkInfo.isConnected()) {
                 return true;
             }
         }
         return false;
     }
-    public void scanForaBluetoothDevice()
-    {
+
+    public void scanForaBluetoothDevice() {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 bluetoothAdapter.stopLeScan(scanCallback);
             }
-        },10000);
+        }, 10000);
         bluetoothAdapter.startLeScan(scanCallback);
     }
-    BluetoothAdapter.LeScanCallback scanCallback=new BluetoothAdapter.LeScanCallback() {
+
+    BluetoothAdapter.LeScanCallback scanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
             runOnUiThread(new Runnable() {
@@ -145,8 +138,8 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void run() {
                     deviceName.setText("Device Name: " + device.getName());
-                    deviceAddress.setText("Device Address "+device.getAddress());
-                    ParseData(scanRecord,rssi);
+                    deviceAddress.setText("Device Address " + device.getAddress());
+                    ParseData(scanRecord, rssi);
                     bluetoothAdapter.stopLeScan(scanCallback);
                 }
             });
@@ -182,13 +175,12 @@ public class MainActivity extends ActionBarActivity {
                 c5 # Tx Power
             */
 
-    private void ParseData(byte[] scanRecord,int rssi)
-    {
+    private void ParseData(byte[] scanRecord, int rssi) {
         int startByte = 2;
         boolean patternFound = false;
         Log.d("Data Found", bytesToHex(scanRecord));
         while (startByte <= 5) {
-            if (    ((int) scanRecord[startByte + 2] & 0xff) == 0x02 && //Identifies an iBeacon
+            if (((int) scanRecord[startByte + 2] & 0xff) == 0x02 && //Identifies an iBeacon
                     ((int) scanRecord[startByte + 3] & 0xff) == 0x15) { //Identifies correct data length
                 patternFound = true;
                 break;
@@ -200,29 +192,29 @@ public class MainActivity extends ActionBarActivity {
             //Convert UUID to hex String
             byte[] uuidBytes = new byte[16];
 
-            System.arraycopy(scanRecord, startByte+4, uuidBytes, 0, 16);
+            System.arraycopy(scanRecord, startByte + 4, uuidBytes, 0, 16);
 
             String hexString = bytesToHex(uuidBytes);
 
             //UUID
-            String uuid =  hexString.substring(0,8) + "-" +
-                    hexString.substring(8,12) + "-" +
-                    hexString.substring(12,16) + "-" +
-                    hexString.substring(16,20) + "-" +
-                    hexString.substring(20,32);
-            deviceuuid.setText("UUID :"+uuid);
+            String uuid = hexString.substring(0, 8) + "-" +
+                    hexString.substring(8, 12) + "-" +
+                    hexString.substring(12, 16) + "-" +
+                    hexString.substring(16, 20) + "-" +
+                    hexString.substring(20, 32);
+            deviceuuid.setText("UUID :" + uuid);
 
             // Major value
-            int major = (scanRecord[startByte+20] & 0xff) * 0x100 + (scanRecord[startByte+21] & 0xff);
+            int major = (scanRecord[startByte + 20] & 0xff) * 0x100 + (scanRecord[startByte + 21] & 0xff);
 
             //Minor value
-            int minor = (scanRecord[startByte+22] & 0xff) * 0x100 + (scanRecord[startByte+23] & 0xff);
+            int minor = (scanRecord[startByte + 22] & 0xff) * 0x100 + (scanRecord[startByte + 23] & 0xff);
 
             //Tx Power
-            int strength = ((scanRecord[startByte+24]))  ;
+            int strength = ((scanRecord[startByte + 24]));
 
-            this.major.setText(String.format("Major :%d",major));
-            this.minor.setText(String.format("Minor :%d",minor));
+            this.major.setText(String.format("Major :%d", major));
+            this.minor.setText(String.format("Minor :%d", minor));
 
             /*
             RSSI = TxPower - 10 * n * lg(distance)
@@ -230,53 +222,45 @@ public class MainActivity extends ActionBarActivity {
              */
 
             //Distance
-           double dis= Math.pow(10d, ((double) strength - rssi) / (10 * 2));
-            distance.setText(String.format("Distance :%.2f m",dis));
-            String proximity="";
-            if(dis<=1.0)
-            {
-                proximity="Immediate";
+            double dis = Math.pow(10d, ((double) strength - rssi) / (10 * 2));
+            distance.setText(String.format("Distance :%.2f m", dis));
+            String proximity = "";
+            if (dis <= 1.0) {
+                proximity = "Immediate";
+            } else if (dis <= 10.0) {
+                proximity = "Near";
+            } else if (dis > 10.0) {
+                proximity = "Far";
             }
-            else if(dis<=10.0)
-            {
-                proximity="Near";
-            }
-            else if(dis>10.0)
-            {
-                proximity="Far";
-            }
-            distanceE.setText("Proximty Range :"+proximity);
-            if(proximity!="") {
-                if(isNextworkAvailable()) {
+            distanceE.setText("Proximty Range :" + proximity);
+            if (proximity != "") {
+                if (isNextworkAvailable()) {
                     String url = "http://www.nivansys.com/iBeacon.php?proximity=" + proximity;
                     RestAPICalls restAPICalls = new RestAPICalls();
                     restAPICalls.execute(url);
-                }
-                else
-                {
+                } else {
                     noNetworkAlertDialog();
                 }
             }
-            Log.d("Parse iBeacon  Data",String.format("Found Proxity UUID %s, major-%d, minor-%d Txpower-%f",uuid,major,minor,dis));
-        }
-        else
-        {
-            Log.d("Parse iBeacon  Data","Unable to Parse iBeacon");
+            Log.d("Parse iBeacon  Data", String.format("Found Proxity UUID %s, major-%d, minor-%d Txpower-%f", uuid, major, minor, dis));
+        } else {
+            Log.d("Parse iBeacon  Data", "Unable to Parse iBeacon");
         }
     }
-    private class RestAPICalls extends AsyncTask<String,Void,JSONObject>
-    {
+
+    private class RestAPICalls extends AsyncTask<String, Void, JSONObject> {
         @Override
         protected JSONObject doInBackground(String... params) {
-            JSONParser jsonParser=new JSONParser();
+            JSONParser jsonParser = new JSONParser();
             return jsonParser.excecuteGetTypeResquestFromUrl(params[0]);
         }
+
         @Override
         protected void onPostExecute(JSONObject jsonObject) {
             super.onPostExecute(jsonObject);
-            Log.d("Tag",jsonObject.toString());
+            Log.d("Tag", jsonObject.toString());
             try {
-                if(!jsonObject.getBoolean("error"));
+                if (!jsonObject.getBoolean("error")) ;
                 {
                     notifyUser(jsonObject.getString("message"));
                 }
@@ -286,33 +270,38 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void notifyUser(String message)
-    {
-        NotificationManager notificationManager=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+    private void notifyUser(String message) {
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(getApplicationContext())
                         .setSmallIcon(android.R.drawable.stat_notify_chat)
                         .setContentTitle("Ibeacon")
                         .setContentText(message);
-        Log.d("Notify","Notified");
-        notificationManager.notify(121,mBuilder.build());
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+        Log.d("Notify", "Notified");
+        notificationManager.notify(121, mBuilder.build());
     }
+
     static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+
     private static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
-        for ( int j = 0; j < bytes.length; j++ ) {
+        for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
             hexChars[j * 2] = hexArray[v >>> 4];
             hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
         return new String(hexChars);
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
@@ -321,15 +310,12 @@ public class MainActivity extends ActionBarActivity {
         if (id == R.id.action_settings) {
             return true;
         }
-        if(id==R.id.action_refresh)
-        {
-            if(!bluetoothAdapter.isEnabled())
-            {
-                Intent bluetoothRequestIntent=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(bluetoothRequestIntent,1);
-            }
-            else
-            scanForaBluetoothDevice();
+        if (id == R.id.action_refresh) {
+            if (!bluetoothAdapter.isEnabled()) {
+                Intent bluetoothRequestIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(bluetoothRequestIntent, 1);
+            } else
+                scanForaBluetoothDevice();
         }
         return super.onOptionsItemSelected(item);
     }
