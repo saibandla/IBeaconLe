@@ -331,7 +331,6 @@ public class MainActivity extends ActionBarActivity {
             else
             scanForaBluetoothDevice();
         }
-
         return super.onOptionsItemSelected(item);
     }
 }
