@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -73,8 +75,9 @@ public class MainActivity extends ActionBarActivity {
         if (!bluetoothAdapter.isEnabled()) {
             Intent bluetoothRequestIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(bluetoothRequestIntent, 1);
-        } else
+        } else {
             scanForaBluetoothDevice();
+        }
     }
 
     @Override
@@ -83,8 +86,6 @@ public class MainActivity extends ActionBarActivity {
         if (requestCode == 1 && resultCode == Activity.RESULT_CANCELED) {
             finish();
             return;
-        } else {
-            scanForaBluetoothDevice();
         }
     }
 
@@ -120,14 +121,25 @@ public class MainActivity extends ActionBarActivity {
         return false;
     }
 
+    ProgressDialog progressDialog;
     public void scanForaBluetoothDevice() {
+
+        progressDialog = ProgressDialog.show(MainActivity.this, "Scanning for Devices", "", false, false);
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 bluetoothAdapter.stopLeScan(scanCallback);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.dismiss();
+                    }
+                });
+
             }
         }, 10000);
         bluetoothAdapter.startLeScan(scanCallback);
+
     }
 
     BluetoothAdapter.LeScanCallback scanCallback = new BluetoothAdapter.LeScanCallback() {
@@ -141,6 +153,7 @@ public class MainActivity extends ActionBarActivity {
                     deviceAddress.setText("Device Address " + device.getAddress());
                     ParseData(scanRecord, rssi);
                     bluetoothAdapter.stopLeScan(scanCallback);
+                    progressDialog.dismiss();
                 }
             });
         }
@@ -278,9 +291,19 @@ public class MainActivity extends ActionBarActivity {
                         .setSmallIcon(android.R.drawable.stat_notify_chat)
                         .setContentTitle("Ibeacon")
                         .setContentText(message);
+
+        Intent intent = new Intent(getBaseContext(), ReadNotificationActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.putExtra("NotificationMsg", message);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(getBaseContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mBuilder.setContentIntent(pendingIntent);
+
+        mBuilder.setAutoCancel(true);
+
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
         Log.d("Notify", "Notified");
-        notificationManager.notify(121, mBuilder.build());
+        notificationManager.notify((int) (Math.random() * 100), mBuilder.build());
     }
 
     static final char[] hexArray = "0123456789ABCDEF".toCharArray();
