@@ -12,8 +12,11 @@ import android.bluetooth.BluetoothManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
@@ -63,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
         }
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
-        if ((bluetoothManager.getAdapter() == null)) {
+        if ((bluetoothAdapter == null)) {
             Toast.makeText(getBaseContext(), "You Device Doesn't Support BlueTooth", Toast.LENGTH_LONG).show();
             finish();
         }
@@ -145,6 +148,8 @@ public class MainActivity extends ActionBarActivity {
     BluetoothAdapter.LeScanCallback scanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
+
+
             runOnUiThread(new Runnable() {
 
                 @Override
@@ -152,8 +157,6 @@ public class MainActivity extends ActionBarActivity {
                     deviceName.setText("Device Name: " + device.getName());
                     deviceAddress.setText("Device Address " + device.getAddress());
                     ParseData(scanRecord, rssi);
-                    bluetoothAdapter.stopLeScan(scanCallback);
-                    progressDialog.dismiss();
                 }
             });
         }
@@ -202,6 +205,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         if (patternFound) {
+            bluetoothAdapter.stopLeScan(scanCallback);
             //Convert UUID to hex String
             byte[] uuidBytes = new byte[16];
 
@@ -238,14 +242,16 @@ public class MainActivity extends ActionBarActivity {
             double dis = Math.pow(10d, ((double) strength - rssi) / (10 * 2));
             distance.setText(String.format("Distance :%.2f m", dis));
             String proximity = "";
-            if (dis <= 1.0) {
+            if (dis <= 0.8) {
                 proximity = "Immediate";
-            } else if (dis <= 10.0) {
+            } else if (dis <= 8.0) {
                 proximity = "Near";
-            } else if (dis > 10.0) {
+            } else if (dis > 8.0) {
                 proximity = "Far";
             }
             distanceE.setText("Proximty Range :" + proximity);
+            progressDialog.dismiss();
+
             if (proximity != "") {
                 if (isNextworkAvailable()) {
                     String url = "http://www.nivansys.com/iBeacon.php?proximity=" + proximity;
@@ -304,6 +310,9 @@ public class MainActivity extends ActionBarActivity {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
         Log.d("Notify", "Notified");
         notificationManager.notify((int) (Math.random() * 100), mBuilder.build());
+        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+        r.play();
     }
 
     static final char[] hexArray = "0123456789ABCDEF".toCharArray();
